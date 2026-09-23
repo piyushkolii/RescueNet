@@ -1,0 +1,14 @@
+# Build outputs
+*.exe
+*.o
+*.obj
+*.out
+rescuenet
+
+# Editor/OS junk
+.vscode/
+.vs/
+*.suo
+*.user
+Thumbs.db
+.DS_Store
