@@ -14,8 +14,6 @@ public:
     int getDangerLevel() const;
     int getArrivalTime() const;
 
-    // Higher danger level gets higher priority.
-    // If danger level is same, earlier request gets priority.
     bool hasHigherPriorityThan(const EvacuationRequest& other) const;
 
 private:

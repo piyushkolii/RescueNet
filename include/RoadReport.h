@@ -2,11 +2,8 @@
 
 #include <string>
 
-// PENDING until an operator reviews it; only VERIFIED reports may change the graph.
 enum class ReportStatus { PENDING, VERIFIED, REJECTED };
 
-// A citizen/volunteer report that a road is blocked (or cleared again).
-// It never touches the graph by itself; the operator's decision is final.
 class RoadReport {
 public:
     RoadReport();
@@ -21,7 +18,6 @@ public:
     ReportStatus getStatus() const;
     bool isPending() const;
 
-    // Only a PENDING report can be decided; returns false if already decided.
     bool verify();
     bool reject();
 
