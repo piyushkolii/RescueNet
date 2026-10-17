@@ -1,0 +1,39 @@
+# RescueNet city map
+# LOCATION <id> <name> <AREA|SHELTER>
+# ROAD     <id> <fromId> <toId> <weight in km>   (roads are two-way)
+# SHELTER  <id> <name> <locationId> <capacity>
+
+LOCATION 1 Central_Market AREA
+LOCATION 2 Railway_Station AREA
+LOCATION 3 River_Colony AREA
+LOCATION 4 Old_Town AREA
+LOCATION 5 Hill_View AREA
+LOCATION 6 Industrial_Area AREA
+LOCATION 7 University AREA
+LOCATION 8 Bus_Stand AREA
+LOCATION 9 Lake_Side AREA
+LOCATION 10 City_Stadium SHELTER
+LOCATION 11 Community_Hall SHELTER
+LOCATION 12 Army_Camp SHELTER
+
+ROAD 1 1 2 4
+ROAD 2 1 4 3
+ROAD 3 1 8 5
+ROAD 4 2 3 6
+ROAD 5 2 10 7
+ROAD 6 3 9 4
+ROAD 7 4 5 6
+ROAD 8 4 11 5
+ROAD 9 5 12 8
+ROAD 10 6 8 3
+ROAD 11 6 12 4
+ROAD 12 7 10 3
+ROAD 13 7 8 6
+ROAD 14 9 10 5
+ROAD 15 3 4 7
+ROAD 16 11 5 4
+ROAD 17 8 11 6
+
+SHELTER 1 Stadium_Shelter 10 300
+SHELTER 2 Hall_Shelter 11 150
+SHELTER 3 Camp_Shelter 12 200
