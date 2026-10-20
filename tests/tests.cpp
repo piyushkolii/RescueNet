@@ -1,0 +1,82 @@
+// Simple self-checking tests for the Graph, MinHeap and Dijkstra modules.
+// Run from the project root so data/city.txt can be found.
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "Dijkstra.h"
+#include "Graph.h"
+#include "MinHeap.h"
+
+namespace {
+int passed = 0;
+int failed = 0;
+
+void check(bool ok, const std::string& name) {
+    if (ok) {
+        ++passed;
+    } else {
+        ++failed;
+        std::cout << "FAIL: " << name << "\n";
+    }
+}
+
+const std::string MAP = "data/city.txt";
+}  // namespace
+
+void testGraph() {
+    Graph g;
+    check(g.loadFromFile(MAP), "graph loads");
+    check(g.locationCount() == 12, "12 locations");
+    check(g.roadCount() == 17, "17 roads");
+    check(g.getLocation(10) && g.getLocation(10)->getName() == "City_Stadium", "location lookup");
+    check(!g.addRoad(Road(99, 1, 999, 1.0)), "road to unknown location rejected");
+    check(!g.addRoad(Road(1, 1, 2, 1.0)), "duplicate road id rejected");
+
+    int degree = 0;
+    for (const Graph::EdgeNode* e = g.neighbours(g.indexOf(1)); e; e = e->next) ++degree;
+    check(degree == 3, "Central_Market has 3 roads");
+}
+
+void testMinHeap() {
+    MinHeap h;
+    double values[] = {5, 1, 9, 3, 7, 2};
+    for (int i = 0; i < 6; ++i) h.push(values[i], i);
+    std::vector<double> out;
+    while (!h.empty()) out.push_back(h.pop().distance);
+    check(out == std::vector<double>({1, 2, 3, 5, 7, 9}), "min-heap pops in order");
+}
+
+void testDijkstra() {
+    Graph g;
+    g.loadFromFile(MAP);
+
+    Route r = Dijkstra::shortestPath(g, 1, 10);
+    check(r.isFound() && r.getTotalCost() == 11, "1 -> 10 costs 11");
+    check(r.getPath() == std::vector<int>({1, 2, 10}), "1 -> 10 goes via 2");
+
+    g.blockRoad(5);   // 2 <-> 10
+    r = Dijkstra::shortestPath(g, 1, 10);
+    check(r.getTotalCost() == 14, "detour cost 14 after blocking road 5");
+    check(r.getPath() == std::vector<int>({1, 8, 7, 10}), "detour goes via 8 and 7");
+
+    g.restoreRoad(5);
+    check(Dijkstra::shortestPath(g, 1, 10).getTotalCost() == 11, "restored road used again");
+
+    Route self = Dijkstra::shortestPath(g, 3, 3);
+    check(self.isFound() && self.getTotalCost() == 0, "route to self is zero");
+
+    g.blockRoad(11);  // 6 <-> 12
+    g.blockRoad(10);  // 6 <-> 8, Industrial_Area is now cut off
+    check(!Dijkstra::shortestPath(g, 6, 1).isFound(), "no route from isolated location");
+    check(!Dijkstra::shortestPath(g, 1, 999).isFound(), "unknown destination gives no route");
+}
+
+int main() {
+    testGraph();
+    testMinHeap();
+    testDijkstra();
+
+    std::cout << passed << " passed, " << failed << " failed\n";
+    return failed == 0 ? 0 : 1;
+}
