@@ -69,12 +69,12 @@ int main() {
             int location = readInt("Location ID: ");
             int people = readInt("Number of people: ");
             int danger = readInt("Danger level (1-5): ");
-            requests.push_back(EvacuationRequest(id, location, people, danger, id));
+            requests.push_back(EvacuationRequest(id, location, people, danger, false, id));
             std::cout << "Request " << id << " added.\n";
         } else if (choice == 5) {
             for (const EvacuationRequest& r : requests)
                 std::cout << "  Request " << r.getId() << ": location " << r.getLocationId() << ", "
-                          << r.getPeopleCount() << " people, danger " << r.getDangerLevel() << "\n";
+                          << r.getGroupSize() << " people, danger " << r.getDangerLevel() << "\n";
         } else if (choice == 6) {
             int id = static_cast<int>(reports.size()) + 1;
             int road = readInt("Road ID: ");
