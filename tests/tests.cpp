@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Dijkstra.h"
+#include "EvacuationQueue.h"
 #include "EvacuationRequest.h"
 #include "Graph.h"
 #include "MinHeap.h"
@@ -119,6 +120,18 @@ void testShelterAllocation() {
     check(sm.findNearest(g, 5, 10000, r) == -1, "no shelter big enough");
 }
 
+void testEvacuationQueue() {
+    EvacuationQueue q;
+    q.push(EvacuationRequest(1, 1, 10, 2, false, 1));
+    q.push(EvacuationRequest(2, 1, 10, 5, false, 2));
+    q.push(EvacuationRequest(3, 1, 10, 2, true, 3));
+    q.push(EvacuationRequest(4, 1, 10, 5, false, 4));  // same priority as 2, arrived later
+
+    std::vector<int> order;
+    while (!q.empty()) order.push_back(q.pop().getId());
+    check(order == std::vector<int>({2, 4, 3, 1}), "requests served by priority then arrival");
+}
+
 int main() {
     testGraph();
     testMinHeap();
@@ -126,6 +139,7 @@ int main() {
     testEvacuationRequest();
     testShelter();
     testShelterAllocation();
+    testEvacuationQueue();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
