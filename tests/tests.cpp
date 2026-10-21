@@ -9,6 +9,7 @@
 #include "Graph.h"
 #include "MinHeap.h"
 #include "Shelter.h"
+#include "ShelterManager.h"
 
 namespace {
 int passed = 0;
@@ -101,12 +102,30 @@ void testShelter() {
     check(s.getOccupancy() == 0, "release never goes below zero");
 }
 
+void testShelterAllocation() {
+    Graph g;
+    g.loadFromFile(MAP);
+    ShelterManager sm;
+    check(sm.loadFromFile(MAP, g) && sm.count() == 3, "3 shelters load");
+
+    Route r;
+    int id = sm.findNearest(g, 5, 100, r);
+    check(id == 2 && r.getTotalCost() == 4, "Hill_View goes to Hall_Shelter");
+    sm.getShelter(id)->acceptEvacuees(100);
+
+    id = sm.findNearest(g, 5, 100, r);
+    check(id == 3, "full shelter skipped, next nearest chosen");
+
+    check(sm.findNearest(g, 5, 10000, r) == -1, "no shelter big enough");
+}
+
 int main() {
     testGraph();
     testMinHeap();
     testDijkstra();
     testEvacuationRequest();
     testShelter();
+    testShelterAllocation();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
