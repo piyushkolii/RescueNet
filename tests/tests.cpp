@@ -1,12 +1,14 @@
-// Simple self-checking tests for the Graph, MinHeap and Dijkstra modules.
-// Run from the project root so data/city.txt can be found.
+// Simple self-checking tests for every module. Run from the project root so
+// data/city.txt can be found.
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "Dijkstra.h"
+#include "EvacuationRequest.h"
 #include "Graph.h"
 #include "MinHeap.h"
+#include "Shelter.h"
 
 namespace {
 int passed = 0;
@@ -72,10 +74,39 @@ void testDijkstra() {
     check(!Dijkstra::shortestPath(g, 1, 999).isFound(), "unknown destination gives no route");
 }
 
+void testEvacuationRequest() {
+    EvacuationRequest r(1, 1, 10, 3, true, 1);
+    check(r.getPriority() == 3510, "priority = danger*1000 + vulnerable 500 + group");
+    check(EvacuationRequest(2, 1, 10, 9, false, 2).getDangerLevel() == 5, "danger level capped at 5");
+    check(r.getStatus() == RequestStatus::PENDING && r.getAssignedShelterId() == -1,
+          "new request is pending");
+
+    EvacuationRequest early(3, 1, 10, 3, false, 3);
+    EvacuationRequest late(4, 1, 10, 3, false, 4);
+    check(early.hasHigherPriorityThan(late) && !late.hasHigherPriorityThan(early),
+          "equal priority: earlier arrival first");
+
+    r.assignShelter(2);
+    check(r.getStatus() == RequestStatus::ASSIGNED && r.getAssignedShelterId() == 2,
+          "assignShelter sets shelter and status");
+}
+
+void testShelter() {
+    Shelter s(1, "Test_Shelter", 10, 100);
+    check(s.acceptEvacuees(60) && s.getOccupancy() == 60, "group of 60 accepted");
+    check(!s.acceptEvacuees(50) && s.getOccupancy() == 60, "group too big refused, nothing changes");
+    s.releaseEvacuees(20);
+    check(s.getOccupancy() == 40 && s.getRemainingCapacity() == 60, "release gives space back");
+    s.releaseEvacuees(100);
+    check(s.getOccupancy() == 0, "release never goes below zero");
+}
+
 int main() {
     testGraph();
     testMinHeap();
     testDijkstra();
+    testEvacuationRequest();
+    testShelter();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
