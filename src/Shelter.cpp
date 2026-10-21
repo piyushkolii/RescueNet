@@ -23,3 +23,8 @@ bool Shelter::acceptEvacuees(int groupSize) {
     occupancy += groupSize;
     return true;
 }
+
+void Shelter::releaseEvacuees(int groupSize) {
+    if (groupSize <= 0) return;
+    occupancy = groupSize > occupancy ? 0 : occupancy - groupSize;
+}
