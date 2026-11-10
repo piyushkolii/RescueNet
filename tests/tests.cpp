@@ -9,6 +9,7 @@
 #include "EvacuationRequest.h"
 #include "Graph.h"
 #include "MinHeap.h"
+#include "ReportHashTable.h"
 #include "ReportQueue.h"
 #include "Shelter.h"
 #include "ShelterManager.h"
@@ -143,6 +144,16 @@ void testReportQueue() {
     check(q.empty(), "queue empty after draining");
 }
 
+void testHashTable() {
+    ReportHashTable t(5);  // small table forces collisions
+    for (int i = 1; i <= 20; ++i) t.insert(RoadReport(i, i, true, "r", "d"));
+    check(t.size() == 20, "20 reports stored");
+    check(t.find(13) && t.find(13)->getRoadId() == 13, "lookup with collisions");
+    check(!t.insert(RoadReport(13, 1, true, "x", "y")), "duplicate id rejected");
+    check(t.remove(13) && !t.find(13) && t.size() == 19, "remove works");
+    check(t.find(99) == nullptr, "missing id gives null");
+}
+
 int main() {
     testGraph();
     testMinHeap();
@@ -152,6 +163,7 @@ int main() {
     testShelterAllocation();
     testEvacuationQueue();
     testReportQueue();
+    testHashTable();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
