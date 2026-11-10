@@ -1,155 +1,160 @@
+#include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <string>
-#include <vector>
 
-#include "Dijkstra.h"
-#include "EvacuationQueue.h"
-#include "EvacuationRequest.h"
-#include "Graph.h"
-#include "Location.h"
-#include "Road.h"
-#include "RoadReport.h"
-#include "Route.h"
-#include "ShelterManager.h"
+#include "RescueNetSystem.h"
 
-const std::string MAP_FILE = "data/city.txt";
+namespace {
 
-Graph city;
-ShelterManager shelters;
-EvacuationQueue pending;
-std::vector<EvacuationRequest> processed;
-std::vector<RoadReport> reports;
-int nextRequestId = 1;
-
-int readInt(const std::string& prompt) {
-    int value;
-    std::cout << prompt;
-    while (!(std::cin >> value)) {
+// Keeps asking until the user types a whole number in [lo, hi].
+int readInt(const std::string& prompt, int lo, int hi) {
+    while (true) {
+        std::cout << prompt;
+        int value;
+        if (std::cin >> value && value >= lo && value <= hi) {
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            return value;
+        }
+        if (std::cin.eof()) std::exit(0);
         std::cin.clear();
-        std::cin.ignore(1000, '\n');
-        std::cout << "Enter a number: ";
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "Please enter a number from " << lo << " to " << hi << ".\n";
     }
-    return value;
 }
 
-void loadCity() {
-    if (city.loadFromFile(MAP_FILE) && shelters.loadFromFile(MAP_FILE, city))
-        std::cout << "Loaded " << city.locationCount() << " locations, " << city.roadCount()
-                  << " roads and " << shelters.count() << " shelters from " << MAP_FILE << ".\n";
+std::string readLine(const std::string& prompt) {
+    std::cout << prompt;
+    std::string line;
+    std::getline(std::cin, line);
+    return line.empty() ? "-" : line;
 }
 
-const char* statusName(RequestStatus status) {
-    switch (status) {
-        case RequestStatus::PENDING: return "PENDING";
-        case RequestStatus::ASSIGNED: return "ASSIGNED";
-        case RequestStatus::EVACUATED: return "EVACUATED";
-        case RequestStatus::FAILED: return "FAILED";
-    }
-    return "";
+void printMenu() {
+    std::cout << "\n========== RescueNet ==========\n"
+              << " 1. Show city map\n"
+              << " 2. Show shelters\n"
+              << " 3. Find shortest route\n"
+              << " 4. Add evacuation request\n"
+              << " 5. Show pending requests\n"
+              << " 6. Process next request\n"
+              << " 7. Process all requests\n"
+              << " 8. Show processed requests\n"
+              << " 9. Mark request evacuated\n"
+              << "10. Submit road report\n"
+              << "11. Review next road report\n"
+              << "12. Find report by ID\n"
+              << "13. Show all road reports\n"
+              << " 0. Exit\n";
 }
 
-void serveNextRequest() {
-    if (pending.empty()) {
-        std::cout << "No pending requests.\n";
+void reviewNextReport(RescueNetSystem& sys) {
+    const RoadReport* r = sys.peekNextReport();
+    if (!r) {
+        std::cout << "No reports waiting for review.\n";
         return;
     }
-    EvacuationRequest r = pending.pop();
-    Route route;
-    int shelterId = shelters.findNearest(city, r.getLocationId(), r.getGroupSize(), route);
-    if (shelterId == -1) {
-        r.markFailed();
-        std::cout << "Request " << r.getId() << ": no reachable shelter has room for "
-                  << r.getGroupSize() << " people.\n";
-    } else {
-        Shelter* s = shelters.getShelter(shelterId);
-        s->acceptEvacuees(r.getGroupSize());
-        r.assignShelter(shelterId);
-        std::cout << "Request " << r.getId() << " -> " << s->getName() << ": ";
-        route.print();
-    }
-    processed.push_back(r);
+    std::cout << "Report " << r->getId() << ": road " << r->getRoadId() << " is "
+              << (r->reportsBlocked() ? "BLOCKED" : "CLEAR again")
+              << " (by " << r->getReporter() << ": " << r->getDescription() << ")\n";
+    int choice = readInt("1 = verify, 2 = reject: ", 1, 2);
+    sys.decideNextReport(choice == 1);
 }
 
-int main() {
-    loadCity();
+}  // namespace
+
+int main(int argc, char* argv[]) {
+    std::string mapPath = argc > 1 ? argv[1] : "data/city.txt";
+
+    RescueNetSystem sys;
+    if (!sys.loadCity(mapPath)) {
+        std::cout << "Failed to load city map. Usage: rescuenet [map-file]\n";
+        return 1;
+    }
+    std::cout << "Loaded " << sys.getGraph().locationCount() << " locations, "
+              << sys.getGraph().roadCount() << " roads, "
+              << sys.getShelters().count() << " shelters from " << mapPath << "\n";
 
     while (true) {
-        std::cout << "\n===== RescueNet =====\n"
-                  << "1. Show locations\n2. Show roads\n3. Show shelters\n"
-                  << "4. Add evacuation request\n5. Show pending requests (priority order)\n"
-                  << "6. Add road report\n7. Show road reports\n"
-                  << "8. Reload city map (resets shelters)\n9. Show map (adjacency list)\n"
-                  << "10. Find shortest route\n11. Block road\n12. Restore road\n"
-                  << "13. Serve next request\n14. Show processed requests\n0. Exit\n";
-        int choice = readInt("Choose: ");
+        printMenu();
+        int choice = readInt("Choose: ", 0, 13);
+        std::cout << "\n";
 
-        if (choice == 0) break;
-        if (choice == 1) {
-            for (const Location& l : city.getLocations())
-                std::cout << "  [" << l.getId() << "] " << l.getName() << " (" << l.getType() << ")\n";
-        } else if (choice == 2) {
-            for (const Road& r : city.getRoads())
-                std::cout << "  Road " << r.getId() << ": " << r.getFrom() << " <-> " << r.getTo()
-                          << ", weight " << r.getWeight() << (r.isOpen() ? ", OPEN\n" : ", BLOCKED\n");
-        } else if (choice == 3) {
-            shelters.print();
-        } else if (choice == 4) {
-            int location = readInt("Location ID: ");
-            if (!city.getLocation(location)) {
-                std::cout << "Unknown location.\n";
-                continue;
+        switch (choice) {
+            case 0:
+                std::cout << "Goodbye.\n";
+                return 0;
+            case 1:
+                sys.printMap();
+                break;
+            case 2:
+                sys.printShelters();
+                break;
+            case 3: {
+                int from = readInt("From location ID: ", 0, 1000000);
+                int to = readInt("To location ID: ", 0, 1000000);
+                if (!sys.getGraph().getLocation(from) || !sys.getGraph().getLocation(to)) {
+                    std::cout << "Unknown location.\n";
+                    break;
+                }
+                sys.findRoute(from, to).print();
+                break;
             }
-            int people = readInt("Number of people: ");
-            int danger = readInt("Danger level (1-5): ");
-            bool vulnerable = readInt("Vulnerable people? (1 = yes, 0 = no): ") == 1;
-            pending.push(EvacuationRequest(nextRequestId, location, people, danger, vulnerable,
-                                           nextRequestId));
-            std::cout << "Request " << nextRequestId << " added to the priority queue.\n";
-            ++nextRequestId;
-        } else if (choice == 5) {
-            pending.print();
-        } else if (choice == 6) {
-            int id = static_cast<int>(reports.size()) + 1;
-            int road = readInt("Road ID: ");
-            bool blocked = readInt("1 = blocked, 2 = cleared: ") == 1;
-            std::string reporter;
-            std::cout << "Reporter name: ";
-            std::cin >> reporter;
-            reports.push_back(RoadReport(id, road, blocked, reporter, ""));
-            std::cout << "Report " << id << " added (pending).\n";
-        } else if (choice == 7) {
-            for (const RoadReport& r : reports)
-                std::cout << "  Report " << r.getId() << ": road " << r.getRoadId()
-                          << (r.reportsBlocked() ? " blocked" : " cleared") << ", by " << r.getReporter()
-                          << (r.isPending() ? " [PENDING]\n" : " [DECIDED]\n");
-        } else if (choice == 8) {
-            loadCity();
-        } else if (choice == 9) {
-            city.print();
-        } else if (choice == 10) {
-            int from = readInt("From location ID: ");
-            int to = readInt("To location ID: ");
-            Dijkstra::shortestPath(city, from, to).print();
-        } else if (choice == 11) {
-            int road = readInt("Road ID to block: ");
-            std::cout << (city.blockRoad(road) ? "Road blocked.\n" : "No such road.\n");
-        } else if (choice == 12) {
-            int road = readInt("Road ID to restore: ");
-            std::cout << (city.restoreRoad(road) ? "Road restored.\n" : "No such road.\n");
-        } else if (choice == 13) {
-            serveNextRequest();
-        } else if (choice == 14) {
-            if (processed.empty()) std::cout << "No processed requests.\n";
-            for (const EvacuationRequest& r : processed) {
-                std::cout << "  Request " << r.getId() << ": location " << r.getLocationId() << ", "
-                          << r.getGroupSize() << " people, " << statusName(r.getStatus());
-                if (r.getStatus() == RequestStatus::ASSIGNED)
-                    std::cout << " to shelter " << r.getAssignedShelterId();
-                std::cout << "\n";
+            case 4: {
+                int loc = readInt("Location ID: ", 0, 1000000);
+                int group = readInt("Group size: ", 1, 100000);
+                int danger = readInt("Danger level (1-5): ", 1, 5);
+                bool vulnerable = readInt("Vulnerable people? (1 = yes, 0 = no): ", 0, 1) == 1;
+                int id = sys.addRequest(loc, group, danger, vulnerable);
+                if (id == -1) std::cout << "Invalid request (unknown location).\n";
+                else std::cout << "Request " << id << " added to the priority queue.\n";
+                break;
             }
-        } else {
-            std::cout << "Invalid choice.\n";
+            case 5:
+                sys.printPendingRequests();
+                break;
+            case 6:
+                if (!sys.processNextRequest()) std::cout << "No pending requests.\n";
+                break;
+            case 7:
+                std::cout << sys.processAllRequests() << " request(s) processed.\n";
+                break;
+            case 8:
+                sys.printAssignments();
+                break;
+            case 9: {
+                int id = readInt("Request ID: ", 1, 1000000);
+                std::cout << (sys.markEvacuated(id) ? "Marked as evacuated.\n"
+                                                    : "No assigned request with that ID.\n");
+                break;
+            }
+            case 10: {
+                int road = readInt("Road ID: ", 0, 1000000);
+                bool blocked = readInt("1 = road blocked, 2 = road cleared: ", 1, 2) == 1;
+                std::string reporter = readLine("Reporter name: ");
+                std::string desc = readLine("Description: ");
+                int id = sys.submitReport(road, blocked, reporter, desc);
+                if (id == -1) std::cout << "Unknown road.\n";
+                else std::cout << "Report " << id << " queued for review ("
+                               << sys.pendingReportCount() << " waiting).\n";
+                break;
+            }
+            case 11:
+                reviewNextReport(sys);
+                break;
+            case 12: {
+                int id = readInt("Report ID: ", 1, 1000000);
+                const RoadReport* r = sys.findReport(id);
+                if (!r) std::cout << "No report with that ID.\n";
+                else std::cout << "Report " << r->getId() << ": road " << r->getRoadId()
+                               << (r->reportsBlocked() ? " BLOCKED" : " CLEARED")
+                               << ", by " << r->getReporter() << " - " << r->getDescription()
+                               << (r->isPending() ? " [pending]" : " [decided]") << "\n";
+                break;
+            }
+            case 13:
+                sys.printReports();
+                break;
         }
     }
-    std::cout << "Goodbye.\n";
 }
