@@ -12,7 +12,7 @@ public:
 
     int getId() const;
     int getRoadId() const;
-    bool reportsBlocked() const; // true = "road is blocked", false = "road is clear again"
+    bool reportsBlocked() const; 
     const std::string& getReporter() const;
     const std::string& getDescription() const;
     ReportStatus getStatus() const;

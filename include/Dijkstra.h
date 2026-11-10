@@ -5,12 +5,9 @@
 #include "Graph.h"
 #include "Route.h"
 
-// Shortest paths over OPEN roads only; BLOCKED roads are skipped entirely.
 class Dijkstra {
 public:
-    // Fills dist/prev (indexed by location index) for every location reachable
-    // from sourceId. Unreachable locations keep dist = infinity, prev = -1.
-    // Returns false if sourceId is not in the graph.
+
     static bool run(const Graph& graph, int sourceId,
                     std::vector<double>& dist, std::vector<int>& prev);
 

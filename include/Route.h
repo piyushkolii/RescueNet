@@ -2,8 +2,6 @@
 
 #include <vector>
 
-// Result of a routing query: the ordered Location IDs from source to
-// destination and the total cost. An empty route means no path was found.
 class Route {
 public:
     Route();
@@ -11,8 +9,8 @@ public:
 
     const std::vector<int>& getPath() const;
     double getTotalCost() const;
-    bool isFound() const;     // false when no route is available
-    void print() const;       // e.g. "1 -> 4 -> 7 (cost 12.5)" or "No route available"
+    bool isFound() const;   
+    void print() const;       
 
 private:
     std::vector<int> path;

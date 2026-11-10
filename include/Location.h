@@ -2,7 +2,6 @@
 
 #include <string>
 
-// A node in the road network: an area or a shelter site.
 class Location {
 public:
     Location();
@@ -10,7 +9,7 @@ public:
 
     int getId() const;
     const std::string& getName() const;
-    const std::string& getType() const; // "AREA" or "SHELTER"
+    const std::string& getType() const; 
 
 private:
     int id;

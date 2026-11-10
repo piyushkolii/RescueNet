@@ -2,8 +2,7 @@
 
 #include <vector>
 
-// Array-based binary min-heap of (distance, location index) pairs, used by
-// Dijkstra to always expand the closest unvisited location next.
+
 class MinHeap {
 public:
     struct Entry {
@@ -14,7 +13,7 @@ public:
     MinHeap();
 
     void push(double distance, int node);
-    Entry pop();          // removes and returns the smallest entry
+    Entry pop();         
     const Entry& top() const;
     bool empty() const;
     int size() const;

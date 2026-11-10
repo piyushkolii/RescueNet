@@ -1,7 +1,5 @@
 #pragma once
 
-// A weighted edge between two Locations. Status is simple: OPEN or BLOCKED,
-// never partly open per the proposal's assumptions.
 enum class RoadStatus { OPEN, BLOCKED };
 
 class Road {

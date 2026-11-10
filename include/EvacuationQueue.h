@@ -4,8 +4,6 @@
 
 #include "EvacuationRequest.h"
 
-// Max-priority queue (binary heap) of pending evacuation requests. The most
-// urgent request, per EvacuationRequest::hasHigherPriorityThan, is on top.
 class EvacuationQueue {
 public:
     EvacuationQueue();

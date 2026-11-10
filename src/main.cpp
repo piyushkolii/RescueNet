@@ -12,9 +12,6 @@
 #include "Route.h"
 #include "ShelterManager.h"
 
-// Demo menu. The city map and the shelters come from data/city.txt. Evacuation
-// requests wait in a priority queue and are sent to the nearest shelter with
-// room; road reports are still a plain vector until their own milestone.
 const std::string MAP_FILE = "data/city.txt";
 
 Graph city;
@@ -51,8 +48,6 @@ const char* statusName(RequestStatus status) {
     return "";
 }
 
-// Takes the most urgent request and sends it to the nearest shelter that can
-// take the whole group.
 void serveNextRequest() {
     if (pending.empty()) {
         std::cout << "No pending requests.\n";
