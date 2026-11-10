@@ -9,6 +9,7 @@
 #include "EvacuationRequest.h"
 #include "Graph.h"
 #include "MinHeap.h"
+#include "ReportQueue.h"
 #include "Shelter.h"
 #include "ShelterManager.h"
 
@@ -132,6 +133,16 @@ void testEvacuationQueue() {
     check(order == std::vector<int>({2, 4, 3, 1}), "requests served by priority then arrival");
 }
 
+void testReportQueue() {
+    ReportQueue q;
+    q.enqueue(7);
+    q.enqueue(3);
+    q.enqueue(9);
+    check(q.size() == 3 && q.front() == 7, "queue front is first in");
+    check(q.dequeue() == 7 && q.dequeue() == 3 && q.dequeue() == 9, "FIFO order");
+    check(q.empty(), "queue empty after draining");
+}
+
 int main() {
     testGraph();
     testMinHeap();
@@ -140,6 +151,7 @@ int main() {
     testShelter();
     testShelterAllocation();
     testEvacuationQueue();
+    testReportQueue();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
