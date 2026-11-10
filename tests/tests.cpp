@@ -1,6 +1,7 @@
 // Simple self-checking tests for every module. Run from the project root so
 // data/city.txt can be found.
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -11,6 +12,7 @@
 #include "MinHeap.h"
 #include "ReportHashTable.h"
 #include "ReportQueue.h"
+#include "RescueNetSystem.h"
 #include "Shelter.h"
 #include "ShelterManager.h"
 
@@ -28,6 +30,14 @@ void check(bool ok, const std::string& name) {
 }
 
 const std::string MAP = "data/city.txt";
+
+// Silences the system's progress messages while a test runs.
+struct QuietCout {
+    std::streambuf* old;
+    std::ostringstream sink;
+    QuietCout() : old(std::cout.rdbuf(sink.rdbuf())) {}
+    ~QuietCout() { std::cout.rdbuf(old); }
+};
 }  // namespace
 
 void testGraph() {
@@ -154,6 +164,45 @@ void testHashTable() {
     check(t.find(99) == nullptr, "missing id gives null");
 }
 
+void testSystemReroute() {
+    QuietCout quiet;
+    RescueNetSystem sys;
+    sys.loadCity(MAP);
+
+    sys.addRequest(1, 10, 3, false);
+    sys.processAllRequests();
+    const Assignment& a = sys.getAssignments()[0];
+    check(a.request.getAssignedShelterId() == 2, "Central_Market goes to Hall_Shelter");
+    check(a.route.getPath() == std::vector<int>({1, 4, 11}), "initial route 1-4-11");
+
+    // A rejected report must not change the map.
+    sys.submitReport(8, true, "Volunteer", "fake");
+    sys.decideNextReport(false);
+    check(sys.getGraph().getRoad(8)->isOpen(), "rejected report leaves road open");
+
+    // Verified block on 4 <-> 11: same shelter, new route.
+    sys.submitReport(8, true, "Police", "landslide");
+    sys.decideNextReport(true);
+    check(!sys.getGraph().getRoad(8)->isOpen(), "verified report blocks road");
+    check(sys.getAssignments()[0].route.getPath() == std::vector<int>({1, 8, 11}),
+          "rerouted via Bus_Stand");
+
+    // Cut Community_Hall off completely: group moves to the stadium.
+    sys.submitReport(17, true, "Police", "flood");
+    sys.submitReport(16, true, "Police", "flood");
+    sys.decideNextReport(true);
+    sys.decideNextReport(true);
+    const Assignment& moved = sys.getAssignments()[0];
+    check(moved.request.getAssignedShelterId() == 1, "moved to Stadium_Shelter");
+    check(sys.getShelters().getShelter(2)->getOccupancy() == 0, "old shelter space freed");
+    check(sys.getShelters().getShelter(1)->getOccupancy() == 10, "new shelter space taken");
+
+    check(sys.findReport(1) && sys.findReport(1)->getStatus() == ReportStatus::REJECTED,
+          "report lookup by id");
+    check(sys.submitReport(999, true, "x", "y") == -1, "report on unknown road refused");
+    check(sys.markEvacuated(1), "assigned request can be marked evacuated");
+}
+
 int main() {
     testGraph();
     testMinHeap();
@@ -164,6 +213,7 @@ int main() {
     testEvacuationQueue();
     testReportQueue();
     testHashTable();
+    testSystemReroute();
 
     std::cout << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
